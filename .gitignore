@@ -1,0 +1,20 @@
+# Node
+node_modules
+.env
+.DS_Store
+
+# Builds
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor settings
+.vscode/
+.idea/
+
+# Firebase Admin credentials (DO NOT COMMIT)
+firebaseAdmin.json
