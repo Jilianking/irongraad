@@ -1,33 +1,34 @@
-import sgMail from '@sendgrid/mail';
-import twilio from 'twilio';
-import admin from 'firebase-admin';
-import serviceAccount from '../../firebaseAdmin.json'; // 🔐 Consider removing this in production
-
-// 🔐 Initialize Firebase Admin only once
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-const firestore = admin.firestore();
-
-// 🔑 Initialize APIs
-sgMail.setApiKey(process.env.SENDGRID_KEY);
-const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
-
 export default async function handler(req, res) {
-  // ✅ Handle CORS first
+  // 🔁 CORS headers must be set FIRST
   const allowedOrigins = ['http://localhost:3000', 'https://irongraad.vercel.app'];
   const origin = req.headers.origin;
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigins.includes(origin) ? origin : '*');
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end(); // 🔁 Preflight ends here
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end(); // End preflight
   }
 
-  // 🚫 Block all non-POST requests
+  // 🔽 IMPORTS AND LOGIC BELOW 🔽
+
+  const sgMail = (await import('@sendgrid/mail')).default;
+  const twilio = (await import('twilio')).default;
+  const admin = (await import('firebase-admin')).default;
+  const serviceAccount = (await import('../../firebaseAdmin.json')).default;
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  }
+  const firestore = admin.firestore();
+
+  sgMail.setApiKey(process.env.SENDGRID_KEY);
+  const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -52,7 +53,6 @@ export default async function handler(req, res) {
   const logs = [];
 
   try {
-    // ✅ Email
     if (contactMethod === 'email' || contactMethod === 'both') {
       await sgMail.send({
         to: email,
@@ -61,10 +61,8 @@ export default async function handler(req, res) {
         text: fullText,
       });
       logs.push({ type: 'email', status: 'success', content: fullText, sentAt: timestamp });
-      console.log("📧 Email sent.");
     }
 
-    // ✅ SMS
     if (contactMethod === 'sms' || contactMethod === 'both') {
       const sms = await twilioClient.messages.create({
         body: fullText,
@@ -72,25 +70,18 @@ export default async function handler(req, res) {
         to: phone,
       });
       logs.push({ type: 'sms', status: 'success', content: fullText, sid: sms.sid, sentAt: timestamp });
-      console.log("📲 SMS sent.");
     }
 
-    // ✅ Firestore logs
     if (projectId) {
       const projectRef = firestore.collection('projects').doc(projectId);
       const messagesRef = projectRef.collection('messages');
-
       for (const log of logs) {
         await messagesRef.add(log);
-        console.log("✅ Logged:", log);
       }
     }
 
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error("❌ Notification error:", err.message);
-
-    // Log error to Firestore
     if (projectId) {
       await firestore.collection('projects').doc(projectId).collection('messages').add({
         type: contactMethod,
@@ -103,3 +94,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
