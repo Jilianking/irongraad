@@ -1,101 +1,60 @@
+// /api/sendNotification.js
+
+import sgMail from '@sendgrid/mail';
+import twilio from 'twilio';
+
+// Configure APIs using environment variables
+sgMail.setApiKey(process.env.SENDGRID_KEY);
+const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+
 export default async function handler(req, res) {
-  // 🔁 CORS headers must be set FIRST
-  const allowedOrigins = ['http://localhost:3000', 'https://irongraad.vercel.app'];
-  const origin = req.headers.origin;
+  // ✅ Allow CORS for local development
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end(); // End preflight
+  // ✅ Respond to CORS preflight request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
   }
 
-  // 🔽 IMPORTS AND LOGIC BELOW 🔽
-
-  const sgMail = (await import('@sendgrid/mail')).default;
-  const twilio = (await import('twilio')).default;
-  const admin = (await import('firebase-admin')).default;
-  const serviceAccount = (await import('../../firebaseAdmin.json')).default;
-
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  }
-  const firestore = admin.firestore();
-
-  sgMail.setApiKey(process.env.SENDGRID_KEY);
-  const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+  console.log("🚀 /api/sendNotification HIT");
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    console.warn("⛔ Method not allowed:", req.method);
+    return res.status(405).end('Method Not Allowed');
   }
 
-  const {
-    name,
-    email,
-    phone,
-    contactMethod,
-    currentStep,
-    trackingLinkId,
-    isComplete,
-    projectId
-  } = req.body;
+  const { name, email, phone, currentStep, trackingLinkId, isComplete } = req.body;
+  console.log("📨 Payload received:", { name, email, phone, currentStep, trackingLinkId, isComplete });
 
-  const fullText = (isComplete
+  const message = isComplete
     ? `✅ Your project is now complete. Thank you!`
-    : `📦 Your project has moved to the next step: "${currentStep}"`) +
-    `\nTrack it here: https://irongraad.vercel.app/track/${trackingLinkId}`;
+    : `📦 Your project has moved to the next step: "${currentStep}"`;
 
-  const timestamp = new Date().toISOString();
-  const logs = [];
+  const fullText = `${message}\nTrack it here: https://irongraad.vercel.app/track/${trackingLinkId}`;
 
   try {
-    if (contactMethod === 'email' || contactMethod === 'both') {
-      await sgMail.send({
-        to: email,
-        from: 'jilianmk70@gmail.com',
-        subject: isComplete ? 'Project Complete' : 'Project Update',
-        text: fullText,
-      });
-      logs.push({ type: 'email', status: 'success', content: fullText, sentAt: timestamp });
-    }
+    // Send Email
+    const emailResponse = await sgMail.send({
+      to: email,
+      from: 'jilianmk70@gmail.com', // Must be a verified sender in SendGrid
+      subject: isComplete ? 'Project Complete' : 'Project Update',
+      text: fullText,
+    });
+    console.log("📧 Email sent successfully.");
 
-    if (contactMethod === 'sms' || contactMethod === 'both') {
-      const sms = await twilioClient.messages.create({
-        body: fullText,
-        from: process.env.TWILIO_FROM || '+18884891932',
-        to: phone,
-      });
-      logs.push({ type: 'sms', status: 'success', content: fullText, sid: sms.sid, sentAt: timestamp });
-    }
-
-    if (projectId) {
-      const projectRef = firestore.collection('projects').doc(projectId);
-      const messagesRef = projectRef.collection('messages');
-      for (const log of logs) {
-        await messagesRef.add(log);
-      }
-    }
+    // Send SMS
+    const smsResponse = await twilioClient.messages.create({
+      body: fullText,
+      from: process.env.TWILIO_FROM || '+18884891932', // Fallback if env missing
+      to: phone,
+    });
+    console.log("📲 SMS sent successfully:", smsResponse.sid);
 
     return res.status(200).json({ success: true });
   } catch (err) {
-    if (projectId) {
-      await firestore.collection('projects').doc(projectId).collection('messages').add({
-        type: contactMethod,
-        status: 'error',
-        error: err.message,
-        sentAt: timestamp,
-      });
-    }
-
+    console.error("❌ Error sending notification:", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
