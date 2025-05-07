@@ -1,15 +1,13 @@
-// src/firebase.js
-
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCv63dTmcKWPs9Qm2xK5eS7HPyyl_wp43U",
-  authDomain: "irongraad-progress.firebaseapp.com",
-  projectId: "irongraad-progress",
-  storageBucket: "irongraad-progress.appspot.com", // NOTE: fix here
-  messagingSenderId: "686542281338",
-  appId: "1:686542281338:web:d08b2f9fe5ffa53ef0f9c3"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase

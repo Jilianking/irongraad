@@ -1,7 +1,7 @@
 import sgMail from '@sendgrid/mail';
 import twilio from 'twilio';
 import admin from 'firebase-admin';
-import serviceAccount from '../../firebaseAdmin.json'; // Adjust path if needed
+import serviceAccount from '../../firebaseAdmin.json'; // 🔐 Consider removing this in production
 
 // 🔐 Initialize Firebase Admin only once
 if (!admin.apps.length) {
@@ -16,22 +16,18 @@ sgMail.setApiKey(process.env.SENDGRID_KEY);
 const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
 
 export default async function handler(req, res) {
-  // ✅ Allow origin during local dev or production
+  // ✅ Handle CORS first
   const allowedOrigins = ['http://localhost:3000', 'https://irongraad.vercel.app'];
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*"); // Fallback for safety
-  }
-
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigins.includes(origin) ? origin : '*');
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
-    return res.status(200).end(); // Preflight request
+    return res.status(200).end(); // 🔁 Preflight ends here
   }
 
+  // 🚫 Block all non-POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -79,7 +75,7 @@ export default async function handler(req, res) {
       console.log("📲 SMS sent.");
     }
 
-    // ✅ Save logs to Firestore
+    // ✅ Firestore logs
     if (projectId) {
       const projectRef = firestore.collection('projects').doc(projectId);
       const messagesRef = projectRef.collection('messages');
@@ -94,7 +90,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("❌ Notification error:", err.message);
 
-    // Log failed attempt
+    // Log error to Firestore
     if (projectId) {
       await firestore.collection('projects').doc(projectId).collection('messages').add({
         type: contactMethod,
