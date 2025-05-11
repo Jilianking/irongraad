@@ -146,7 +146,31 @@ export default function ActiveProjects() {
                 Advance to Next Step
               </button>
             )}
+              {!isComplete && (
+  <button
+    onClick={async () => {
+      const nextIndex = selected.currentStepIndex + 1;
+      await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: nextIndex });
+      setProjects(prev =>
+        prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: nextIndex } : p)
+      );
+      await notifyCustomer({ project: selected, nextIndex });
+    }}
+    className="bg-[#3a0d0d] hover:bg-[#5c1a1a] text-white font-semibold px-4 py-2 rounded"
+  >
+    Advance to Next Step
+  </button>
+)}
 
+{/* ✅ Customer-facing link */}
+<a
+  href={`/track/${selected.trackingLinkId}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="block mt-3 text-blue-300 hover:underline text-sm"
+>
+  View Customer Page
+</a>
             <div className="mt-6">
               <label className="block mb-2 text-sm font-semibold">Internal Notes</label>
               <textarea

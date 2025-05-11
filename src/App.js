@@ -18,7 +18,7 @@ function App() {
         <Route path="/newproject" element={<NewProject />} />
         <Route path="/project/:id" element={<ProjectPage />} />
         <Route path="/calendar" element={<Calendar />} />
-        <Route path="/track" element={<CustomerTracking />} />
+        <Route path="/track/:trackingLinkId" element={<CustomerTracking />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="*" element={<div className="text-white p-6">404 - Page Not Found</div>} />
       </Routes>
