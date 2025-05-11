@@ -1,32 +1,36 @@
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
+import { DialogTitle } from '@radix-ui/react-dialog';
+import { Link } from 'react-router-dom';
 
 const notifyCustomer = async ({ project, nextIndex }) => {
   try {
-    console.log("📣 notifyCustomer called", project.name);
+    if (!project?.id) return;
+
+    const payload = {
+      name: project.name,
+      email: project.email,
+      phone: project.phone,
+      contactMethod: project.contactMethod,
+      currentStep: project.selectedSteps[nextIndex],
+      trackingLinkId: project.trackingLinkId,
+      isComplete: false,
+      projectId: project.id,
+    };
+
     const res = await fetch("https://irongraad.vercel.app/api/sendNotification", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: project.name,
-        email: project.email,
-        phone: project.phone,
-        contactMethod: project.contactMethod,
-        currentStep: project.selectedSteps[nextIndex],
-        trackingLinkId: project.trackingLinkId,
-        isComplete: false,
-        projectId: project.id // ✅ required for Firebase message logging
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
-    const result = await res.json();
-    console.log("📤 Notification result:", result);
-
-    if (!res.ok) throw new Error(result.error || "Notification failed");
-    console.log("✅ Notification sent successfully");
+    if (!res.ok) {
+      const result = await res.json();
+      throw new Error(result.error || "Notification failed");
+    }
   } catch (err) {
     console.error("❌ Notification error:", err.message);
   }
@@ -34,22 +38,19 @@ const notifyCustomer = async ({ project, nextIndex }) => {
 
 export default function ActiveProjects() {
   const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchProjects = async () => {
       const querySnapshot = await getDocs(collection(db, 'projects'));
-      const data = querySnapshot.docs.map(doc => {
-        const project = doc.data();
-        return {
-          id: doc.id,
-          ...project,
-          currentStepIndex: project.currentStepIndex ?? 0
-        };
-      });
+      const data = querySnapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+        currentStepIndex: docSnap.data().currentStepIndex ?? 0,
+      }));
       setProjects(data);
     };
-
     fetchProjects();
   }, []);
 
@@ -59,103 +60,105 @@ export default function ActiveProjects() {
     (p.trackingLinkId || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const selected = projects.find(p => p.id === selectedProjectId);
+  const currentStep = selected?.selectedSteps?.[selected.currentStepIndex] ?? '✅ Complete';
+  const isComplete = selected?.currentStepIndex >= selected?.selectedSteps?.length;
+
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-6">🔧 Active Projects</h1>
+    <div className="flex min-h-screen bg-gradient-to-b from-[#2e0e17] to-[#3a0d0d] text-white">
+      <div className="w-1/3 border-r border-gray-700 p-6 overflow-y-auto">
+        <div className="flex items-center gap-4 mb-8">
+          <Sheet>
+            <SheetTrigger>
+              <Menu className="w-8 h-8 cursor-pointer" />
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-gray-800 text-black w-64 p-6 h-full">
+              <DialogTitle className="text-xl font-bold mb-2">Navigation</DialogTitle>
+              
+              <ul className="space-y-4 text-2xl font-large">
+                <li><Link to="/activeprojects" className="hover:underline">Active Projects</Link></li>
+                <li><Link to="/newproject" className="hover:underline">New Project</Link></li>
+                <li><Link to="/calendar" className="hover:underline">Calendar</Link></li>
+                <li><Link to="/track" className="hover:underline">Customer Tracking</Link></li>
+                <li><Link to="/inbox" className="hover:underline">Inbox</Link></li>
+              </ul>
+            </SheetContent>
+          </Sheet>
 
-      <input
-        type="text"
-        placeholder="Search by name, type, or ID..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full p-3 mb-6 rounded bg-gray-700 text-white"
-      />
+          <h2 className="text-5xl font-extrabold tracking-wide">Projects</h2>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map(project => {
-          const currentStep = project.selectedSteps?.[project.currentStepIndex] ?? "✅ Complete";
-          const isComplete = project.currentStepIndex >= project.selectedSteps?.length;
+        <input
+          type="text"
+          placeholder="Search by name or type..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full p-2 mb-4 text-lg rounded bg-gray-800 text-white"
+        />
 
-          return (
-            <div
+        <ul className="space-y-2">
+          {filtered.map(project => (
+            <li
               key={project.id}
-              className="bg-gray-800 border border-gray-600 rounded-xl p-5 shadow hover:shadow-lg transition"
+              onClick={() => setSelectedProjectId(project.id)}
+              className={`cursor-pointer p-3 rounded transition ${
+                selectedProjectId === project.id ? 'bg-[#3a0d0d]' : 'hover:bg-[#4d1c1c]'
+              }`}
             >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-lg font-semibold">{project.name}</p>
-                  {project.email && (
-                    <p className="text-sm text-gray-400">📧 {project.email}</p>
-                  )}
-                  {project.phone && (
-                    <p className="text-sm text-gray-400">📞 {project.phone}</p>
-                  )}
-                  {project.contactMethod && (
-                    <p className="text-xs italic text-gray-500">
-                      Preferred: {project.contactMethod.toUpperCase()}
-                    </p>
-                  )}
-                </div>
-                <span className={`text-xs font-medium px-3 py-1 rounded-full ${
-                  isComplete ? 'bg-green-600' : 'bg-yellow-600'
-                }`}>
-                  {isComplete ? 'Complete' : `Step ${project.currentStepIndex + 1}`}
-                </span>
-              </div>
+              <p className="font-semibold text-2xl">{project.name}</p>
+              <p className="text-xl text-gray-400">{project.projectType}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-              <p className="text-sm mb-1"><strong>Fix Type:</strong> {project.fixType}</p>
-              <p className="text-sm mb-1"><strong>Project:</strong> {project.projectType}</p>
-              <p className="text-sm mb-3"><strong>Tracking ID:</strong> {project.trackingLinkId}</p>
+      <div className="w-2/3 p-8 text-base md:text-lg leading-relaxed">
+        {selected ? (
+          <>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">{selected.name}</h2>
+              <p className="text-sm">📧 {selected.email} | 📞 {selected.phone}</p>
+              <p className="text-sm italic text-gray-400">Preferred: {selected.contactMethod?.toUpperCase()}</p>
+            </div>
 
-              <div className="bg-gray-700 p-3 rounded mb-3">
-                <p className="text-sm font-semibold">Current Step:</p>
-                <p className="text-sm text-blue-300">{currentStep}</p>
-              </div>
-
+            <div className="bg-gray-800 p-4 rounded-lg mb-4">
+              <p><strong>Fix Type:</strong> {selected.fixType}</p>
+              <p><strong>Project Type:</strong> {selected.projectType}</p>
+              <p><strong>Tracking ID:</strong> {selected.trackingLinkId}</p>
+              <p><strong>Current Step:</strong> {currentStep}</p>
               {!isComplete && (
-                <div className="mb-3 text-sm text-gray-300">
-                  <span className="font-semibold">Next Step:</span>{" "}
-                  <span className="text-white font-semibold">
-                    {project.selectedSteps?.[project.currentStepIndex + 1]}
-                  </span>
-                </div>
+                <p><strong>Next Step:</strong> {selected.selectedSteps?.[selected.currentStepIndex + 1]}</p>
               )}
+            </div>
 
+            {!isComplete && (
               <button
                 onClick={async () => {
-                  console.log("🟦 Button clicked - preparing to advance step for:", project.name);
-
-                  const nextIndex = project.currentStepIndex + 1;
-                  if (nextIndex < project.selectedSteps?.length) {
-                    await updateDoc(doc(db, "projects", project.id), {
-                      currentStepIndex: nextIndex
-                    });
-
-                    console.log(`✅ Advanced ${project.name} to Step ${nextIndex}`);
-
-                    setProjects(prev =>
-                      prev.map(p =>
-                        p.id === project.id
-                          ? { ...p, currentStepIndex: nextIndex }
-                          : p
-                      )
-                    );
-
-                    await notifyCustomer({ project, nextIndex });
-                  }
+                  const nextIndex = selected.currentStepIndex + 1;
+                  await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: nextIndex });
+                  setProjects(prev =>
+                    prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: nextIndex } : p)
+                  );
+                  await notifyCustomer({ project: selected, nextIndex });
                 }}
-                disabled={isComplete}
-                className={`w-full py-2 mt-2 font-bold rounded ${
-                  isComplete
-                    ? 'bg-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className="bg-[#3a0d0d] hover:bg-[#5c1a1a] text-white font-semibold px-4 py-2 rounded"
               >
-                {isComplete ? "✅ Done" : "Advance to Next Step"}
+                Advance to Next Step
               </button>
+            )}
+
+            <div className="mt-6">
+              <label className="block mb-2 text-sm font-semibold">Internal Notes</label>
+              <textarea
+                rows={4}
+                placeholder="Enter notes here..."
+                className="w-full p-3 rounded bg-gray-800 text-white border border-gray-600"
+              />
             </div>
-          );
-        })}
+          </>
+        ) : (
+          <div className="text-gray-400">Select a project to view details.</div>
+        )}
       </div>
     </div>
   );

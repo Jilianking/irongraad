@@ -173,44 +173,35 @@ export default function NewProject() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto text-white relative">
-      <h2 className="text-2xl font-bold mb-4">Create New Project</h2>
+    <div className="min-h-screen bg-gradient-to-b from-[#2e0e17] to-[#511628] flex justify-center items-center px-4 py-10">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded-xl shadow-lg w-full max-w-3xl space-y-6"
+      >
+        <h2 className="text-2xl font-bold text-maroonDark">New Project</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-gray-800 p-6 rounded-xl shadow-md">
-        <input
-          type="text"
-          name="name"
-          placeholder="Customer Name"
-          value={formData.name}
-          onChange={handleInputChange}
-          className="w-full p-2 rounded bg-gray-700 text-white"
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email Address"
-          value={formData.email}
-          onChange={handleInputChange}
-          className="w-full p-2 rounded bg-gray-700 text-white"
-        />
-        <input
-          type="tel"
-          name="phone"
-          placeholder="Phone Number"
-          value={formData.phone}
-          onChange={handleInputChange}
-          className="w-full p-2 rounded bg-gray-700 text-white"
-          required
-        />
+        <div className="grid md:grid-cols-2 gap-4">
+          <input type="text" name="name" placeholder="Customer Name" value={formData.name} onChange={handleInputChange} className="p-3 rounded bg-gray-100 text-black" required />
+          <input type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleInputChange} className="p-3 rounded bg-gray-100 text-black" />
+        </div>
 
-        <select
-          name="fixType"
-          value={formData.fixType}
-          onChange={handleFixTypeSelect}
-          className="w-full p-2 rounded bg-gray-700 text-white"
-          required
-        >
+        <div className="grid md:grid-cols-2 gap-4">
+          <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleInputChange} className="p-3 rounded bg-gray-100 text-black" required />
+
+          <div className="flex gap-6 items-center">
+            <label className="text-maroonDark font-semibold">Contact:</label>
+            <label>
+              <input type="radio" name="contactMethod" value="sms" checked={formData.contactMethod === "sms"} onChange={handleInputChange} className="mr-1" />
+              SMS
+            </label>
+            <label>
+              <input type="radio" name="contactMethod" value="email" checked={formData.contactMethod === "email"} onChange={handleInputChange} className="mr-1" />
+              Email
+            </label>
+          </div>
+        </div>
+
+        <select name="fixType" value={formData.fixType} onChange={handleFixTypeSelect} className="w-full p-3 rounded bg-gray-100 text-black" required>
           <option value="">Select Fix Type</option>
           {Object.keys(fixTemplates).map((type) => (
             <option key={type} value={type}>{type}</option>
@@ -218,13 +209,7 @@ export default function NewProject() {
         </select>
 
         {formData.fixType && (
-          <select
-            name="projectType"
-            value={formData.projectType}
-            onChange={handleProjectTypeSelect}
-            className="w-full p-2 rounded bg-gray-700 text-white"
-            required
-          >
+          <select name="projectType" value={formData.projectType} onChange={handleProjectTypeSelect} className="w-full p-3 rounded bg-gray-100 text-black" required>
             <option value="">Select Project Type</option>
             {Object.keys(fixTemplates[formData.fixType]).map((project) => (
               <option key={project} value={project}>{project}</option>
@@ -234,16 +219,11 @@ export default function NewProject() {
 
         {formData.fixType && formData.projectType && (
           <div>
-            <p className="font-semibold mt-4 mb-2">Select Steps:</p>
-            <div className="grid grid-cols-2 gap-2">
-              {fixTemplates[formData.fixType][formData.projectType].map((step, index) => (
-                <label key={index} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.selectedSteps.includes(step)}
-                    onChange={() => handleStepChange(step)}
-                    className="mr-2"
-                  />
+            <p className="text-maroonDark font-semibold">Steps:</p>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {fixTemplates[formData.fixType][formData.projectType].map((step, idx) => (
+                <label key={idx} className="flex items-center text-sm">
+                  <input type="checkbox" checked={formData.selectedSteps.includes(step)} onChange={() => handleStepChange(step)} className="mr-2" />
                   {step}
                 </label>
               ))}
@@ -251,51 +231,15 @@ export default function NewProject() {
           </div>
         )}
 
-        <textarea
-          name="description"
-          placeholder="Project Description"
-          value={formData.description}
-          onChange={handleInputChange}
-          className="w-full p-2 rounded bg-gray-700 text-white"
-        />
+        <textarea name="description" placeholder="Project Description" value={formData.description} onChange={handleInputChange} className="w-full p-3 rounded bg-gray-100 text-black" rows={4} />
 
-        <div>
-          <span className="font-semibold">Preferred Contact:</span>
-          <label className="ml-4">
-            <input
-              type="radio"
-              name="contactMethod"
-              value="sms"
-              checked={formData.contactMethod === "sms"}
-              onChange={handleInputChange}
-              className="mr-1"
-            />
-            SMS
-          </label>
-          <label className="ml-4">
-            <input
-              type="radio"
-              name="contactMethod"
-              value="email"
-              checked={formData.contactMethod === "email"}
-              onChange={handleInputChange}
-              className="mr-1"
-            />
-            Email
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
+        <button type="submit" className="w-full bg-[#3a0d0d] hover:bg-[#5c1a1a] text-white font-semibold py-3 rounded">
           Create Project
         </button>
       </form>
 
-      {/* ✅ Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transition-all z-50">
+        <div className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg z-50">
           ✅ Project Created!<br />
           Tracking ID: <code>{lastTrackingId}</code>
         </div>
