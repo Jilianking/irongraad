@@ -5,7 +5,15 @@ import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { DialogTitle } from '@radix-ui/react-dialog';
 import { Link } from 'react-router-dom';
+import Toast from '../components/ui/Toast';
 
+/**
+ * Sends a notification to the customer about their project's status update
+ * @param {Object} params - The parameters object
+ * @param {Object} params.project - The project object containing customer and project details
+ * @param {number} params.nextIndex - The index of the next step in the project
+ * @returns {Promise<void>}
+ */
 const notifyCustomer = async ({ project, nextIndex }) => {
   try {
     if (!project?.id) return;
@@ -36,11 +44,33 @@ const notifyCustomer = async ({ project, nextIndex }) => {
   }
 };
 
+/**
+ * ActiveProjects component displays and manages all active projects
+ * Features include:
+ * - Project listing and filtering
+ * - Project details view
+ * - Step progression management
+ * - Internal notes management
+ * - Customer notification system
+ * 
+ * @returns {JSX.Element} The ActiveProjects component
+ */
 export default function ActiveProjects() {
+  // State for managing the list of all projects
   const [projects, setProjects] = useState([]);
+  // State for tracking which project is currently selected
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  // State for filtering projects by search term
   const [search, setSearch] = useState('');
+  // State for managing internal notes for the selected project
+  const [internalNotes, setInternalNotes] = useState('');
+  // State for managing toast notifications
+  const [toast, setToast] = useState(null);
 
+  /**
+   * Fetches all projects from Firestore and updates the local state
+   * Also updates internal notes if a project is selected
+   */
   useEffect(() => {
     const fetchProjects = async () => {
       const querySnapshot = await getDocs(collection(db, 'projects'));
@@ -50,16 +80,28 @@ export default function ActiveProjects() {
         currentStepIndex: docSnap.data().currentStepIndex ?? 0,
       }));
       setProjects(data);
+
+      if (selectedProjectId) {
+        const selected = data.find(p => p.id === selectedProjectId);
+        setInternalNotes(selected?.internalNotes || '');
+      }
     };
     fetchProjects();
-  }, []);
+  }, [selectedProjectId]);
 
+  /**
+   * Filters projects based on the search term
+   * Matches against project name, fix type, and tracking ID
+   */
   const filtered = projects.filter(p =>
     (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.fixType || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.trackingLinkId || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  /**
+   * Currently selected project and its current step information
+   */
   const selected = projects.find(p => p.id === selectedProjectId);
   const currentStep = selected?.selectedSteps?.[selected.currentStepIndex] ?? '✅ Complete';
   const isComplete = selected?.currentStepIndex >= selected?.selectedSteps?.length;
@@ -74,7 +116,6 @@ export default function ActiveProjects() {
             </SheetTrigger>
             <SheetContent side="left" className="bg-gray-800 text-black w-64 p-6 h-full">
               <DialogTitle className="text-xl font-bold mb-2">Navigation</DialogTitle>
-              
               <ul className="space-y-4 text-2xl font-large">
                 <li><Link to="/activeprojects" className="hover:underline">Active Projects</Link></li>
                 <li><Link to="/newproject" className="hover:underline">New Project</Link></li>
@@ -131,59 +172,112 @@ export default function ActiveProjects() {
               )}
             </div>
 
-            {!isComplete && (
-              <button
-                onClick={async () => {
-                  const nextIndex = selected.currentStepIndex + 1;
-                  await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: nextIndex });
-                  setProjects(prev =>
-                    prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: nextIndex } : p)
-                  );
-                  await notifyCustomer({ project: selected, nextIndex });
-                }}
-                className="bg-[#3a0d0d] hover:bg-[#5c1a1a] text-white font-semibold px-4 py-2 rounded"
-              >
-                Advance to Next Step
-              </button>
-            )}
-              {!isComplete && (
-  <button
-    onClick={async () => {
-      const nextIndex = selected.currentStepIndex + 1;
-      await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: nextIndex });
-      setProjects(prev =>
-        prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: nextIndex } : p)
-      );
-      await notifyCustomer({ project: selected, nextIndex });
-    }}
-    className="bg-[#3a0d0d] hover:bg-[#5c1a1a] text-white font-semibold px-4 py-2 rounded"
-  >
-    Advance to Next Step
-  </button>
-)}
+            <div className="flex gap-3 mt-4">
+              {!isComplete && selected.currentStepIndex > 0 && (
+                <button
+                  onClick={async () => {
+                    /**
+                     * Moves the project back one step and updates Firestore
+                     * Updates local state and shows confirmation toast
+                     */
+                    const prevIndex = selected.currentStepIndex - 1;
+                    await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: prevIndex });
+                    setProjects(prev =>
+                      prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: prevIndex } : p)
+                    );
+                    setToast("Step moved back.");
+                  }}
+                  className="bg-yellow-700 hover:bg-yellow-800 text-white font-semibold px-4 py-2 rounded"
+                >
+                  Go Back to Previous Step
+                </button>
+              )}
 
-{/* ✅ Customer-facing link */}
-<a
-  href={`/track/${selected.trackingLinkId}`}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="block mt-3 text-blue-300 hover:underline text-sm"
->
-  View Customer Page
-</a>
+              {!isComplete && (
+                <button
+                  onClick={async () => {
+                    /**
+                     * Advances the project to the next step
+                     * Updates Firestore, sends customer notification, and shows confirmation toast
+                     */
+                    const nextIndex = selected.currentStepIndex + 1;
+                    await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: nextIndex });
+                    setProjects(prev =>
+                      prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: nextIndex } : p)
+                    );
+                    await notifyCustomer({ project: selected, nextIndex });
+                    setToast("Advanced to next step.");
+                  }}
+                  className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded"
+                >
+                  Advance to Next Step
+                </button>
+              )}
+
+              {!isComplete && (
+                <button
+                  onClick={async () => {
+                    /**
+                     * Marks the project as complete
+                     * Updates Firestore, sends final notification, and shows confirmation toast
+                     */
+                    const completeIndex = selected.selectedSteps.length;
+                    await updateDoc(doc(db, 'projects', selected.id), { currentStepIndex: completeIndex });
+                    setProjects(prev =>
+                      prev.map(p => p.id === selected.id ? { ...p, currentStepIndex: completeIndex } : p)
+                    );
+                    await notifyCustomer({ project: selected, nextIndex: completeIndex });
+                    setToast("Project marked complete.");
+                  }}
+                  className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded"
+                >
+                  Mark as Complete
+                </button>
+              )}
+            </div>
+
+            <a
+              href={`/track/${selected.trackingLinkId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block mt-3 text-blue-300 hover:underline text-sm"
+            >
+              View Customer Page
+            </a>
+
             <div className="mt-6">
               <label className="block mb-2 text-sm font-semibold">Internal Notes</label>
               <textarea
                 rows={4}
                 placeholder="Enter notes here..."
+                value={internalNotes}
+                onChange={e => setInternalNotes(e.target.value)}
                 className="w-full p-3 rounded bg-gray-800 text-white border border-gray-600"
               />
+              <button
+                onClick={async () => {
+                  /**
+                   * Saves internal notes to Firestore
+                   * Updates local state and shows confirmation toast
+                   */
+                  await updateDoc(doc(db, 'projects', selected.id), { internalNotes });
+                  setProjects(prev =>
+                    prev.map(p => p.id === selected.id ? { ...p, internalNotes } : p)
+                  );
+                  setToast("Notes saved successfully.");
+                }}
+                className="mt-2 bg-purple-700 hover:bg-purple-800 text-white font-semibold px-4 py-2 rounded"
+              >
+                Save Notes
+              </button>
             </div>
           </>
         ) : (
           <div className="text-gray-400">Select a project to view details.</div>
         )}
       </div>
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }
