@@ -3,8 +3,6 @@ import logo from "./assets/logo.png";
 import {
   PlusSquare,
   FolderKanban,
-  Layers,
-  Users,
   Bell,
   CalendarDays,
 } from "lucide-react";
@@ -28,13 +26,31 @@ export default function Dashboard() {
       </div>
 
       {/* 🔳 Main Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full px-8 -mt-[200px]">
-        <NavTile label="New Project" link="/newproject" icon={PlusSquare} />
-        <NavTile label="Active Projects" link="/activeprojects" icon={FolderKanban} />
-        <NavTile label="Project Advancement" link="/project/123" icon={Layers} />
-        <NavTile label="Customer Tracking" link="/track/demo123" icon={Users} />
-        <Widget title="SMS/Email Notifications" link="/notifications" icon={Bell} />
-        <Widget title="Calendar" link="/calendar" icon={CalendarDays} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full px-12 -mt-[200px]">
+        <NavTile 
+          label="New Project" 
+          link="/newproject" 
+          icon={PlusSquare} 
+          className="h-[250px]"
+        />
+        <NavTile 
+          label="Active Projects" 
+          link="/activeprojects" 
+          icon={FolderKanban} 
+          className="h-[250px]"
+        />
+        <Widget 
+          title="SMS/Email Notifications" 
+          link="/inbox" 
+          icon={Bell} 
+          className="h-[250px]"
+        />
+        <Widget 
+          title="Calendar" 
+          link="/calendar" 
+          icon={CalendarDays} 
+          className="h-[250px]"
+        />
       </div>
 
       {/* 📦 Footer */}
@@ -46,38 +62,40 @@ export default function Dashboard() {
 }
 
 // 🔹 NavTile with glossy look + hover lighten
-function NavTile({ label, link, icon: Icon }) {
+function NavTile({ label, link, icon: Icon, className }) {
   return (
     <Link to={link} className="group">
       <div 
-        className="bg-gradient-to-br from-[#3b1f27]/70 to-[#1f0f14]/60 
+        className={`bg-gradient-to-br from-[#3b1f27]/70 to-[#1f0f14]/60 
         group-hover:from-[#4a2630]/80 group-hover:to-[#29161c]/70
-        border border-white/10 rounded-xl p-6 
+        border border-white/10 rounded-xl p-8 
         shadow-md group-hover:shadow-xl transition-all duration-300 
-        text-xl font-semibold text-white h-[200px] 
-        flex flex-col items-center justify-center text-center gap-2 backdrop-blur-sm"
+        text-2xl font-semibold text-white
+        flex flex-col items-center justify-center text-center gap-3 backdrop-blur-sm
+        ${className}`}
       >
-        {Icon && <Icon className="w-6 h-6 text-white" />}
-        {label}
+        {Icon && <Icon className="w-8 h-8 text-white text-center" />}
+        <span className="text-center">{label}</span>
       </div>
     </Link>
   );
 }
 
 // 🔹 Widget with same hover lighten + depth
-function Widget({ title, link, icon: Icon }) {
+function Widget({ title, link, icon: Icon, className }) {
   return (
     <Link to={link} className="group">
       <div 
-        className="bg-gradient-to-br from-[#3b1f27]/70 to-[#1f0f14]/60 
+        className={`bg-gradient-to-br from-[#3b1f27]/70 to-[#1f0f14]/60 
         group-hover:from-[#4a2630]/80 group-hover:to-[#29161c]/70
         border border-white/10 rounded-xl p-8 
         shadow-md group-hover:shadow-xl transition-all duration-300 
-        flex flex-col justify-center min-h-[425px] backdrop-blur-sm"
+        flex flex-col items-center justify-center text-center backdrop-blur-sm
+        ${className}`}
       >
-        {Icon && <Icon className="w-6 h-6 mb-3 text-white" />}
-        <p className="text-2xl font-bold text-white">{title}</p>
-        <p className="text-sm text-gray-300 mt-2">Click to view details</p>
+        {Icon && <Icon className="w-8 h-8 mb-3 text-white text-center" />}
+        <p className="text-2xl font-bold text-white text-center">{title}</p>
+        <p className="text-sm text-gray-300 mt-2 text-center">Click to view details</p>
       </div>
     </Link>
   );
