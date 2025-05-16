@@ -12,24 +12,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Firebase Admin with error handling
+// Initialize Firebase Admin with error handling using environment variables
 try {
-  // Use the admin key file directly
-  const adminKey = require('./firebaseAdmin.json');
-  
+  const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
+  const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (!firebaseProjectId || !firebaseClientEmail || !firebasePrivateKey) {
+    throw new Error('Missing Firebase Admin credentials in environment variables.');
+  }
+
   initializeApp({
-    credential: cert(adminKey)
+    credential: cert({
+      projectId: firebaseProjectId,
+      clientEmail: firebaseClientEmail,
+      // Replace escaped newlines for Vercel environment variables
+      privateKey: firebasePrivateKey.replace(/\\n/g, '\n'), 
+    }),
   });
   
-  console.log('✅ Firebase initialized successfully');
+  console.log('✅ Firebase initialized successfully via environment variables');
 } catch (error) {
-  console.error('❌ Firebase initialization error:', error);
-  process.exit(1);
+  console.error('❌ Firebase initialization error:', error.message);
+  process.exit(1); // Exit if Firebase fails to initialize
 }
 
 const db = getFirestore();
 
-// Initialize SendGrid and Twilio
+// Initialize SendGrid and Twilio (ensure these env vars are set in Vercel)
 sgMail.setApiKey(process.env.SENDGRID_KEY);
 const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
 console.log('✅ SendGrid and Twilio initialized');
