@@ -5,7 +5,7 @@ node_modules/
 .env
 .env.local
 
-# macOS system file
+# macOS system files
 .DS_Store
 
 # Build outputs
@@ -27,7 +27,7 @@ yarn-error.log*
 firebaseAdmin.json
 
 # Vercel project config (local only)
-.vercel
+.vercel/
 
 # Optional: OS/system junk
 *.swp
