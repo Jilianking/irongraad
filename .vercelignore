@@ -1,1 +1,34 @@
-node_modules/
+# Ignore local development config
+.env
+.env.local
+.env.development
+.env.*.local
+
+# Node modules (not needed by Vercel since build step handles it)
+node_modules
+
+# Build artifacts
+build
+dist
+.cache
+.next
+out
+
+# IDE and OS specific
+.vscode
+.DS_Store
+*.log
+
+# Testing & coverage
+coverage
+*.test.js
+*.test.jsx
+jest.config.js
+
+# Firebase emulators (if used locally)
+firebase-debug.log
+.firebaserc
+.firebase/
+
+# Mac system files
+Thumbs.db
