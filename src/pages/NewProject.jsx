@@ -4,8 +4,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { Menu, Calendar as CalendarIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from "../components/ui/button";
+import { Link } from 'react-router-dom';
 
 const fixTemplates = {
   Plumbing: {
@@ -93,7 +92,6 @@ const fixTemplates = {
 };
 
 export default function NewProject() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",

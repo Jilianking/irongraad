@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Menu, Search, Bell, Filter, Check, MessageSquare, XCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { Link } from 'react-router-dom';
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, where, limit, startAfter } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit, startAfter } from 'firebase/firestore';
 import { db } from '../firebase';
 import Toast from '../components/ui/Toast';
 import {
@@ -23,7 +23,6 @@ export default function Inbox() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [unreadCounts, setUnreadCounts] = useState({});
   const [messageThreads, setMessageThreads] = useState([]);
   const [messageTypeFilter, setMessageTypeFilter] = useState('all');
   const [readStatusFilter, setReadStatusFilter] = useState('all');
@@ -278,7 +277,7 @@ export default function Inbox() {
     if (!loading && messages.length > 0) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [selectedContact, loading]);
+  }, [selectedContact, loading, scrollToBottom, messages.length]);
 
   const handleHideThread = (e, contactEmail) => {
     e.stopPropagation(); // Prevent selecting the thread

@@ -23,7 +23,6 @@ import QuickActions from '../components/QuickActions';
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState({});
-  const [loading, setLoading] = useState(true);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [selectedDay, setSelectedDay] = useState(null);
 
@@ -106,10 +105,8 @@ export default function Calendar() {
         });
         
         setEvents(eventsByDate);
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching events:', error);
-        setLoading(false);
       }
     };
 
