@@ -6,11 +6,6 @@ import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "../components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../components/ui/popover";
 
 const fixTemplates = {
   Plumbing: {
