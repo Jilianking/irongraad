@@ -9,7 +9,7 @@
     "dev:react": "react-scripts start",
     "dev:server": "nodemon server.js",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:react\"",
-    "vercel-build": "npm run build && npm run start",
+    "vercel-build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
