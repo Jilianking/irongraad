@@ -10,6 +10,16 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
+// Check for missing environment variables
+const missingVars = Object.entries(firebaseConfig)
+  .filter(([key, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing Firebase environment variables:', missingVars);
+  console.error('Please add these to your Vercel environment variables');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
